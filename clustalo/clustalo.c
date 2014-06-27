@@ -165,9 +165,9 @@ static PyMethodDef ClustaloMethods[] = {
 };
 
 PyMODINIT_FUNC
-initclustalo(void)
+init_clustalo(void)
 {
-    PyObject *module = Py_InitModule("clustalo", ClustaloMethods);
+    PyObject *module = Py_InitModule("_clustalo", ClustaloMethods);
     PyModule_AddIntConstant(module, "DNA", SEQTYPE_DNA);
     PyModule_AddIntConstant(module, "RNA", SEQTYPE_RNA);
     PyModule_AddIntConstant(module, "PROTEIN", SEQTYPE_PROTEIN);

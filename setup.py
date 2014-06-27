@@ -1,5 +1,9 @@
 import subprocess
-from distutils.core import setup, Extension
+
+from ez_setup import use_setuptools
+use_setuptools()
+
+from setuptools import setup, find_packages, Extension
 
 def pkgconfig(*packages, **kw):
     flag_map = {'-I': 'include_dirs', '-L': 'library_dirs', '-l': 'libraries'}
@@ -18,8 +22,8 @@ try:
 except subprocess.CalledProcessError:
     pass
 
-module = Extension('clustalo',
-                   sources = ['clustalo.c'],
+module = Extension('clustalo/_clustalo',
+                   sources = ['clustalo/clustalo.c'],
                    include_dirs=clustalo_include_dirs,
                    library_dirs=clustalo_library_dirs,
                    libraries=['clustalo', 'stdc++', 'gomp'],
@@ -32,4 +36,7 @@ setup(name='clustalo',
       author='Joshua Ma',
       author_email='josh@benchling.com',
       url='https://github.com/benchling/clustalo-python',
-      ext_modules=[module])
+      packages=find_packages(),
+      ext_modules=[module],
+      tests_require=["nose"],
+      test_suite = "nose.collector")

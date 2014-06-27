@@ -73,10 +73,22 @@ clustalo_clustalo(PyObject *self, PyObject *args, PyObject *keywds)
     rAlnOpts.iMaxHMMIterations = maxHMMIterations;
 
     // Read in sequences from input.
-    PyObject *key, *value;
+    PyObject *key, *value, *strvalue;
     Py_ssize_t pos = 0;
     while (PyDict_Next(inputDict, &pos, &key, &value)) {
-        char *seq = PyString_AsString(value);
+        if ( !PyString_Check(key) ){
+            PyErr_SetString(PyExc_ValueError, "Sequence keys must be strings.");
+            return NULL;
+        }
+
+        strvalue = PyObject_Str(value);
+        if ( strvalue == NULL ) {
+            char *keystr = PyString_AsString(key);
+            PyErr_Format(PyExc_ValueError, "Unable to convert sequence value to string: %s", keystr);
+            return NULL;
+        }
+
+        char *seq = PyString_AsString(strvalue);
         // Sanitize sequence.
         int seqPos;
         for (seqPos = 0; seqPos < (int)strlen(seq); seqPos++) {
@@ -84,11 +96,23 @@ clustalo_clustalo(PyObject *self, PyObject *args, PyObject *keywds)
             if (isgap(*res))
                 continue;
             if (prMSeq->seqtype == SEQTYPE_PROTEIN && strchr(AMINO_ALPHABET, toupper(*res)) == NULL) {
-                *res = AMINOACID_ANY;
+                if ( toupper(*res) != AMINOACID_ANY) {
+                  char *keystr = PyString_AsString(key);
+                  PyErr_Format(PyExc_ValueError, "Invalid sequence character in key: %s value: %c", keystr, *res);
+                  return NULL;
+                }
             } else if (prMSeq->seqtype==SEQTYPE_DNA && strchr(DNA_ALPHABET, toupper(*res)) == NULL) {
-                *res = NUCLEOTIDE_ANY;
+                if ( toupper(*res) != NUCLEOTIDE_ANY) {
+                  char *keystr = PyString_AsString(key);
+                  PyErr_Format(PyExc_ValueError, "Invalid sequence character in key: %s value: %c", keystr, *res);
+                  return NULL;
+                }
             } else if (prMSeq->seqtype==SEQTYPE_RNA && strchr(RNA_ALPHABET, toupper(*res)) == NULL) {
-                *res = NUCLEOTIDE_ANY;
+                if ( toupper(*res) != NUCLEOTIDE_ANY) {
+                  char *keystr = PyString_AsString(key);
+                  PyErr_Format(PyExc_ValueError, "Invalid sequence character in key: %s value: %c", keystr, *res);
+                  return NULL;
+                }
             }
         }
         AddSeq(&prMSeq, PyString_AsString(key), seq);
@@ -122,21 +146,21 @@ clustalo_clustalo(PyObject *self, PyObject *args, PyObject *keywds)
 
 static PyMethodDef ClustaloMethods[] = {
     {"clustalo",  (PyCFunction)clustalo_clustalo, METH_VARARGS | METH_KEYWORDS,
-     "Runs clustal omega."
+     "Runs clustal omega.\n"
+     "\n"
+     "Args:\n"
+     "  data (dict): dictionary of sequence_name => bases\n"
+     "\n"
+     "Kwargs:\n"
+     "  seqtype (int): should be one of clustalo.DNA, clustalo.RNA, or clustalo.PROTEIN\n"
+     "  mbed_guide_tree (bool): whether mBed-like clustering guide tree should be used\n"
+     "  mbed_iteration (bool): whether mBed-like clustering iteration should be used\n"
+     "  num_combined_iterations (int): number of (combined guide-tree/HMM) iterations\n"
+     "  max_guidetree_iterations (int): max guide tree iterations within combined iterations\n"
+     "  max_hmm_iterations (int): max HMM iterations within combined iterations\n"
+     "  num_threads (int): number of threads to use (requires libclustalo compiled with OpenMP)\n"
      ""
-     "Args:"
-     "  data (dict): dictionary of sequence_name => bases"
-     ""
-     "Kwargs:"
-     "  seqtype (int): should be one of clustalo.DNA, clustalo.RNA, or clustalo.PROTEIN"
-     "  mbed_guide_tree (bool): whether mBed-like clustering guide tree should be used"
-     "  mbed_iteration (bool): whether mBed-like clustering iteration should be used"
-     "  num_combined_iterations (int): number of (combined guide-tree/HMM) iterations"
-     "  max_guidetree_iterations (int): max guide tree iterations within combined iterations"
-     "  max_hmm_iterations (int): max HMM iterations within combined iterations"
-     "  num_threads (int): number of threads to use (requires libclustalo compiled with OpenMP)"
-     ""
-     "Returns dict of sequence_named => aligned_bases ('_' for gaps)"},
+     "Returns dict of sequence_named => aligned_bases ('_' for gaps)\n"},
     {NULL, NULL, 0, NULL}
 };
 
